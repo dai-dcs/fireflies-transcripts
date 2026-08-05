@@ -7,6 +7,7 @@ Usage:
 """
 import logging
 import os
+import time
 
 from dotenv import load_dotenv
 
@@ -31,6 +32,10 @@ def main():
     )
     state = StateStore(os.environ.get("STATE_DB_PATH", "./state.db"))
     include_media = os.getenv("INCLUDE_MEDIA", "false").lower() == "true"
+    # Fireflies enforces a per-account rate limit on the GraphQL API. Backfill
+    # calls it once per transcript, so on an account with a lot of history
+    # that's a burst of requests — pace it out to stay under the limit.
+    delay_seconds = float(os.getenv("BACKFILL_DELAY_SECONDS", "1.5"))
 
     total, uploaded, skipped, failed = 0, 0, 0, 0
     for item in fireflies.iter_all_transcripts(page_size=50):
@@ -40,6 +45,7 @@ def main():
             result = sync_transcript(tid, fireflies, uploader, state, source="backfill", include_media=include_media)
             if result:
                 uploaded += 1
+                time.sleep(delay_seconds)
             else:
                 skipped += 1
         except Exception:

@@ -6,6 +6,7 @@ the full transcript (text, summary, speakers, and the audio/video download
 URL) before uploading it to Object Storage.
 """
 import logging
+import time
 
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -72,9 +73,19 @@ class FirefliesClient:
         }
         self._client = httpx.Client(headers=self._headers, timeout=timeout)
 
-    @retry(stop=stop_after_attempt(4), wait=wait_exponential(multiplier=2, max=30))
+    @retry(stop=stop_after_attempt(6), wait=wait_exponential(multiplier=2, max=90))
     def _post(self, query: str, variables: dict) -> dict:
         resp = self._client.post(GRAPHQL_URL, json={"query": query, "variables": variables})
+        if resp.status_code == 429:
+            # Fireflies rate limit. Respect Retry-After if given, otherwise let
+            # tenacity's exponential backoff (above) handle the wait before retrying.
+            retry_after = resp.headers.get("Retry-After")
+            if retry_after:
+                wait_s = float(retry_after)
+                log.warning("Fireflies rate limit hit (429), waiting %.1fs per Retry-After header", wait_s)
+                time.sleep(wait_s)
+            else:
+                log.warning("Fireflies rate limit hit (429), backing off before retry")
         resp.raise_for_status()
         payload = resp.json()
         if "errors" in payload and payload["errors"]:
