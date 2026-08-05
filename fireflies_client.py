@@ -100,9 +100,11 @@ class FirefliesClient:
         data = self._post(LIST_TRANSCRIPTS_QUERY, {"limit": limit, "skip": skip})
         return data["transcripts"]
 
-    def iter_all_transcripts(self, page_size: int = 50):
-        """Yield every transcript id/title the account has, oldest paging handled by caller."""
-        skip = 0
+    def iter_all_transcripts(self, page_size: int = 50, start_skip: int = 0):
+        """Yield every transcript id/title the account has, page by page.
+        start_skip lets a caller resume pagination from a prior checkpoint
+        instead of always starting over from the beginning."""
+        skip = start_skip
         while True:
             page = self.list_transcripts(limit=page_size, skip=skip)
             if not page:
