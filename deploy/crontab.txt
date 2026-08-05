@@ -1,0 +1,3 @@
+# Add via: crontab -e  (as the `opc` user, or whichever user owns the deployment)
+# Reconciliation safety net — catches any transcript the webhook path missed.
+*/15 * * * * cd /opt/fireflies-oci-connector && /opt/fireflies-oci-connector/venv/bin/python reconcile.py >> /opt/fireflies-oci-connector/logs/reconcile.log 2>&1

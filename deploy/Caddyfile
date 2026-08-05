@@ -1,0 +1,9 @@
+# Caddy automatically obtains and renews a Let's Encrypt TLS certificate for
+# your domain, then reverse-proxies to the FastAPI app on port 8787.
+# Requires: a domain/subdomain (e.g. fireflies.yourdomain.com) with an A
+# record pointing at your OCI instance's public IP, and ports 80+443 open
+# in the OCI Security List / Network Security Group.
+
+fireflies.yourdomain.com {
+    reverse_proxy 127.0.0.1:8787
+}
