@@ -38,6 +38,7 @@ def main():
     )
     state = StateStore(os.environ.get("STATE_DB_PATH", "./state.db"))
     include_media = os.getenv("INCLUDE_MEDIA", "false").lower() == "true"
+    compress = os.getenv("COMPRESS_TRANSCRIPTS", "false").lower() == "true"
 
     recent = fireflies.list_transcripts(limit=RECENT_WINDOW, skip=0)
     missed = 0
@@ -46,7 +47,7 @@ def main():
         if state.already_uploaded(tid):
             continue
         try:
-            sync_transcript(tid, fireflies, uploader, state, source="reconcile", include_media=include_media)
+            sync_transcript(tid, fireflies, uploader, state, source="reconcile", include_media=include_media, compress=compress)
             missed += 1
         except Exception:
             log.exception("Reconcile failed for transcript %s", tid)

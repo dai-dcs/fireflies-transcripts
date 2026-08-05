@@ -32,9 +32,12 @@ def sync_transcript(
     source: str,
     include_media: bool = False,
     force: bool = False,
+    compress: bool = False,
 ) -> str | None:
     """Fetch one transcript from Fireflies and push it to Object Storage.
-    Returns the object name on success, or None if it was already synced."""
+    Returns the object name on success, or None if it was already synced.
+    When compress=True, the transcript JSON is gzipped before upload and the
+    object gets a .json.gz name so it's unambiguous from the key alone."""
     if not force and state.already_uploaded(transcript_id):
         log.info("Skipping %s, already uploaded", transcript_id)
         return None
@@ -44,8 +47,8 @@ def sync_transcript(
     safe_title = "".join(c if c.isalnum() or c in "-_ " else "_" for c in (transcript.get("title") or "untitled"))[:80]
     base_name = f"{prefix}/{transcript_id}_{safe_title}"
 
-    json_object_name = f"{base_name}/transcript.json"
-    uploader.upload_json(json_object_name, transcript)
+    json_object_name = f"{base_name}/transcript.json.gz" if compress else f"{base_name}/transcript.json"
+    uploader.upload_json(json_object_name, transcript, compress=compress)
 
     if include_media:
         for field, ext in (("audio_url", "mp3"), ("video_url", "mp4")):

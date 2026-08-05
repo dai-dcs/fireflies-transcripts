@@ -32,6 +32,7 @@ def main():
     )
     state = StateStore(os.environ.get("STATE_DB_PATH", "./state.db"))
     include_media = os.getenv("INCLUDE_MEDIA", "false").lower() == "true"
+    compress = os.getenv("COMPRESS_TRANSCRIPTS", "false").lower() == "true"
     # Fireflies enforces a per-account rate limit on the GraphQL API. Backfill
     # calls it once per transcript, so on an account with a lot of history
     # that's a burst of requests — pace it out to stay under the limit.
@@ -60,7 +61,7 @@ def main():
             total += 1
             tid = item["id"]
             try:
-                result = sync_transcript(tid, fireflies, uploader, state, source="backfill", include_media=include_media)
+                result = sync_transcript(tid, fireflies, uploader, state, source="backfill", include_media=include_media, compress=compress)
                 if result:
                     uploaded += 1
                     time.sleep(delay_seconds)

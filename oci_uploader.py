@@ -5,6 +5,7 @@ Uses the standard OCI Python SDK. Works with either a config-file profile
 connector ever runs on an OCI compute instance with a dynamic group policy
 attached (no key files needed in that case).
 """
+import gzip
 import json
 import logging
 
@@ -40,16 +41,41 @@ class ObjectStorageUploader:
                 ) from e
             raise
 
-    def upload_json(self, object_name: str, data: dict) -> str:
-        body = json.dumps(data, indent=2, default=str).encode("utf-8")
-        self.client.put_object(
+    def upload_json(self, object_name: str, data: dict, compress: bool = False) -> str:
+        """Upload a dict as JSON. When compress=True, the object is gzipped
+        before upload and content_encoding is set to 'gzip' so browsers/CLIs
+        that respect that header (curl --compressed, browsers) transparently
+        decompress it. Object storage still charges for the compressed size,
+        which is the point — transcript JSON compresses very well (~80-90%
+        smaller), stretching the Always Free 20 GB allowance considerably
+        further. The caller is responsible for naming the object with a
+        .json.gz (compressed) or .json (uncompressed) suffix so it's obvious
+        from the object name alone which one it is."""
+        raw = json.dumps(data, indent=2, default=str).encode("utf-8")
+        if compress:
+            body = gzip.compress(raw)
+            content_type = "application/json"
+            content_encoding = "gzip"
+        else:
+            body = raw
+            content_type = "application/json"
+            content_encoding = None
+
+        kwargs = dict(
             namespace_name=self.namespace,
             bucket_name=self.bucket,
             object_name=object_name,
             put_object_body=body,
-            content_type="application/json",
+            content_type=content_type,
         )
-        log.info("Uploaded %s (%d bytes) to bucket %s", object_name, len(body), self.bucket)
+        if content_encoding:
+            kwargs["content_encoding"] = content_encoding
+
+        self.client.put_object(**kwargs)
+        log.info(
+            "Uploaded %s (%d bytes%s) to bucket %s",
+            object_name, len(body), " gzip-compressed" if compress else "", self.bucket,
+        )
         return object_name
 
     def upload_from_url(self, object_name: str, source_url: str, content_type: str = "application/octet-stream") -> str:
