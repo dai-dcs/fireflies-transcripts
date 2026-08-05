@@ -4,14 +4,14 @@ After=network.target
 
 [Service]
 Type=simple
-User=opc
-WorkingDirectory=/opt/fireflies-oci-connector
-EnvironmentFile=/opt/fireflies-oci-connector/.env
-ExecStart=/opt/fireflies-oci-connector/venv/bin/uvicorn app:app --host 127.0.0.1 --port 8787
+User=ubuntu
+WorkingDirectory=/home/ubuntu/fireflies-transcripts/fireflies-transcripts
+EnvironmentFile=/home/ubuntu/fireflies-transcripts/fireflies-transcripts/.env
+ExecStart=/home/ubuntu/fireflies-transcripts/fireflies-transcripts/venv/bin/uvicorn app:app --host 127.0.0.1 --port 8787
 Restart=on-failure
 RestartSec=5
-StandardOutput=append:/opt/fireflies-oci-connector/logs/service.log
-StandardError=append:/opt/fireflies-oci-connector/logs/service.log
+StandardOutput=append:/home/ubuntu/fireflies-transcripts/fireflies-transcripts/logs/service.log
+StandardError=append:/home/ubuntu/fireflies-transcripts/fireflies-transcripts/logs/service.log
 
 [Install]
 WantedBy=multi-user.target
