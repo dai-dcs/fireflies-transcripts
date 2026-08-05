@@ -45,9 +45,12 @@ Fireflies meeting ends
 
 ## Setup status (as of last session)
 - Code and deployment artifacts are complete and syntax-verified.
-- **Not yet deployed** — no SSH access to the user's OCI VM from this environment. User must run the steps in `Fireflies-to-OCI-Setup-Guide.docx` (Oracle Object Storage bucket + IAM policy + API key, Fireflies API key + webhook config, then Section 5 for server deployment).
-- Requires a domain/subdomain pointed at the VM's public IP (for Caddy's TLS cert) and inbound 80/443 open in the OCI Security List/NSG — this is the main extra setup cost vs. the polling variant.
+- User has cloned this repo onto their server via Git (not the OCI Always Free VM this was originally scoped for — same idea, different host) and already has **nginx** installed and serving another app on the same domain.
+- Actual reverse proxy is **nginx**, not Caddy — `deploy/Caddyfile` is now the fallback/alternative for a bare VM with no existing proxy; `deploy/nginx-fireflies.conf` is the real config, added as a `location /fireflies/` block inside the existing server block for `dashboards.decirclesolar.com`.
+- `deploy/fireflies-connector.service` was updated to bind uvicorn to `127.0.0.1:8787` instead of `0.0.0.0:8787`, since nginx (not the app) is now the public-facing edge.
+- Webhook URL: `https://dashboards.decirclesolar.com/fireflies/webhooks/fireflies`. The `/fireflies/` prefix is stripped by nginx (trailing slashes on both `location` and `proxy_pass`) before forwarding to the app's actual route, `/webhooks/fireflies` — no app code changes were needed.
+- Still needs on the server: `nginx -t && systemctl reload nginx` after adding the location block, `.env` filled in, `python backfill.py` run once, systemd service (re)started with the updated bind address, and the webhook URL above registered in Fireflies' webhook settings.
 
 ## Open items / things to revisit
-- User has not yet confirmed the OCI bucket, IAM policy, or Fireflies webhook secret are created — those are prerequisites before `app.py` can start successfully.
-- No domain name has been specified yet; `deploy/Caddyfile` currently has a placeholder (`fireflies.yourdomain.com`) that needs to be edited before deployment.
+- Confirm TLS for `dashboards.decirclesolar.com` is already handled by the existing nginx/certbot setup (likely, since another app is already live there) — no new certificate work needed for this path.
+- Confirm the OCI bucket, IAM policy, and Fireflies webhook secret are created; these are still prerequisites regardless of which host runs the connector.

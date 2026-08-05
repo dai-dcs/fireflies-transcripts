@@ -17,7 +17,7 @@ server deployment, testing, troubleshooting) are in **Fireflies-to-OCI Setup Gui
 - `state.py` — SQLite idempotency ledger (prevents duplicate uploads).
 - `backfill.py` — one-time script to push every existing transcript.
 - `reconcile.py` — periodic safety net for missed webhooks (run via cron).
-- `deploy/` — systemd unit, Caddy reverse-proxy config, crontab snippet.
+- `deploy/` — systemd unit, nginx location snippet, crontab snippet. (`deploy/Caddyfile` is the original design for a bare VM with no existing reverse proxy — superseded by `deploy/nginx-fireflies.conf` if nginx is already installed and terminating TLS, which is this deployment's actual setup.)
 
 ## Quick start (after following the setup guide for credentials/bucket)
 ```bash
@@ -30,5 +30,18 @@ sudo cp deploy/fireflies-connector.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now fireflies-connector
 ```
-Then point Fireflies' webhook settings at `https://fireflies.yourdomain.com/webhooks/fireflies`
-(behind Caddy — see `deploy/Caddyfile`) and add the crontab entry in `deploy/crontab.txt`.
+
+### Reverse proxy: nginx (this deployment)
+The app binds to `127.0.0.1:8787` (see `deploy/fireflies-connector.service`) and is not
+directly exposed. Add the location block from `deploy/nginx-fireflies.conf` into the
+existing `server { }` block for your domain, then:
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+Point Fireflies' webhook settings at the public path, e.g.
+`https://dashboards.decirclesolar.com/fireflies/webhooks/fireflies`, and add the
+crontab entry in `deploy/crontab.txt`.
+
+### Reverse proxy: Caddy (alternative, bare VM with no existing proxy)
+If nginx isn't already running, `deploy/Caddyfile` is a simpler one-file alternative —
+it also handles the Let's Encrypt certificate automatically.
