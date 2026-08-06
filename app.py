@@ -123,7 +123,7 @@ if ENABLE_TEST_ROUTES:
     <body style="font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto;">
       <h2>Decompress a transcript (testing only)</h2>
       <p>Upload a <code>.json.gz</code> object (or any gzip) to view its decompressed contents.</p>
-      <form action="/test/decompress" method="post" enctype="multipart/form-data">
+      <form action="" method="post" enctype="multipart/form-data">
         <input type="file" name="file" accept=".gz,.json.gz" required>
         <button type="submit">Decompress &amp; view</button>
       </form>
@@ -158,7 +158,7 @@ if ENABLE_TEST_ROUTES:
           <h3>{file.filename}</h3>
           <p>{len(raw)} bytes compressed &rarr; {len(decompressed)} bytes decompressed</p>
           <pre style="background:#f5f5f5; padding:16px; border-radius:6px; overflow-x:auto; white-space:pre-wrap;">{pretty}</pre>
-          <p><a href="/test/decompress">&larr; upload another</a></p>
+          <p><a href="">&larr; upload another</a></p>
         </body>
         </html>
         """
