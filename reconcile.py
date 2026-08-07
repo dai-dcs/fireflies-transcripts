@@ -25,6 +25,7 @@ logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 log = logging.getLogger("reconcile")
 
 RECENT_WINDOW = int(os.getenv("RECONCILE_WINDOW", "200"))
+PAGE_SIZE = 50  # Fireflies' hard max per list_transcripts call — do not raise.
 
 
 def main():
@@ -40,7 +41,17 @@ def main():
     include_media = os.getenv("INCLUDE_MEDIA", "false").lower() == "true"
     compress = os.getenv("COMPRESS_TRANSCRIPTS", "false").lower() == "true"
 
-    recent = fireflies.list_transcripts(limit=RECENT_WINDOW, skip=0)
+    # RECONCILE_WINDOW is the total number of most-recent transcripts to check,
+    # but Fireflies caps each list_transcripts call at 50, so page through it.
+    recent = []
+    skip = 0
+    while skip < RECENT_WINDOW:
+        page = fireflies.list_transcripts(limit=min(PAGE_SIZE, RECENT_WINDOW - skip), skip=skip)
+        if not page:
+            break
+        recent.extend(page)
+        skip += PAGE_SIZE
+
     missed = 0
     for item in recent:
         tid = item["id"]

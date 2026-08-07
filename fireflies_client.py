@@ -15,6 +15,11 @@ log = logging.getLogger("fireflies_client")
 
 GRAPHQL_URL = "https://api.fireflies.ai/graphql"
 
+# Fireflies rejects any `transcripts` query with limit > 50 (HTTP 400,
+# invalid_arguments). Any caller wanting more than one page's worth of
+# transcripts must paginate with skip, not raise this value.
+MAX_LIST_LIMIT = 50
+
 TRANSCRIPT_QUERY = """
 query Transcript($id: String!) {
   transcript(id: $id) {
@@ -97,6 +102,11 @@ class FirefliesClient:
         return data["transcript"]
 
     def list_transcripts(self, limit: int = 50, skip: int = 0) -> list:
+        if limit > MAX_LIST_LIMIT:
+            raise ValueError(
+                f"list_transcripts limit={limit} exceeds Fireflies' max of {MAX_LIST_LIMIT}. "
+                "Paginate with skip instead of requesting more per call."
+            )
         data = self._post(LIST_TRANSCRIPTS_QUERY, {"limit": limit, "skip": skip})
         return data["transcripts"]
 
